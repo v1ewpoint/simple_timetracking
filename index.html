@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6feb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Zeiterfassung">
+  <title>Zeiterfassung</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="page-title">Zeit erfassen</h1>
+    <button type="button" id="menu-btn" class="menu-btn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">⋯</button>
+    <div id="menu" class="menu" hidden>
+      <button type="button" data-action="export">Backup speichern</button>
+      <button type="button" data-action="import">Backup aus Datei laden</button>
+      <button type="button" data-action="auto">Automatische Backups</button>
+      <p class="menu-info" id="menu-info"></p>
+    </div>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+  </header>
+
+  <dialog id="backup-dialog">
+    <h2>Automatische Backups</h2>
+    <p class="hint">Einmal pro Tag wird beim Öffnen der App eine Kopie auf diesem Gerät gesichert (die letzten 30 Tage).</p>
+    <div id="backup-list"></div>
+    <form method="dialog"><button class="btn-secondary dialog-close">Schließen</button></form>
+  </dialog>
+
+  <main>
+    <!-- Seite 1: Erfassen -->
+    <section id="page-entry" class="page">
+      <form id="entry-form" class="card" autocomplete="off">
+        <label class="field">
+          <span>Datum</span>
+          <input type="date" id="f-date" required>
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Beginn</span>
+            <input type="time" id="f-start" required>
+          </label>
+          <label class="field">
+            <span>Ende</span>
+            <input type="time" id="f-end" required>
+          </label>
+        </div>
+        <p class="preview" id="f-preview">&nbsp;</p>
+        <button type="submit" class="btn-primary">Zeit eintragen</button>
+      </form>
+
+      <div id="current-week"></div>
+    </section>
+
+    <!-- Seite 2: Übersicht -->
+    <section id="page-list" class="page" hidden>
+      <div class="search">
+        <input type="date" id="search-date" aria-label="Zu Tag springen">
+        <button type="button" id="search-btn" class="btn-secondary">Springen</button>
+      </div>
+      <p class="hint" id="search-msg"></p>
+      <div id="weeks"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <a href="#entry" data-page="entry" class="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Erfassen</span>
+    </a>
+    <a href="#list" data-page="list" class="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>
+      <span>Übersicht</span>
+    </a>
+  </nav>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
