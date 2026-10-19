@@ -1,5 +1,5 @@
 // Bei Änderungen an den Dateien die Version erhöhen, damit der Cache erneuert wird.
-const CACHE = 'zeiterfassung-v4';
+const CACHE = 'zeiterfassung-v5';
 const ASSETS = [
   './',
   './index.html',

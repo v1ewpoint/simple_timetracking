@@ -132,6 +132,17 @@ function weekSectionHtml(anyDayOfWeek, list, { id = '', empty = '', markDate = '
       </section>`;
 }
 
+// Datums-/Uhrzeit-Auswahl beim Antippen des ganzen Feldes öffnen
+document.addEventListener('click', (e) => {
+  const input = e.target.closest('input[type="date"], input[type="time"]');
+  if (!input || typeof input.showPicker !== 'function') return;
+  try {
+    input.showPicker();
+  } catch {
+    // z. B. wenn die Auswahl bereits offen ist – dann öffnet der Browser sie selbst
+  }
+});
+
 // ---------- Seite 1: Erfassen ----------
 const fDate = $('#f-date');
 const fStart = $('#f-start');

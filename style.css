@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light dark;
   --bg: #f4f6f9;
   --card: #ffffff;
   --text: #1b1f24;
@@ -75,9 +76,10 @@ input[type="date"], input[type="time"] {
   background: var(--bg);
   color: var(--text);
   min-height: 52px;
-  -webkit-appearance: none;
-  appearance: none;
+  cursor: pointer;
 }
+/* iOS: leere Felder sonst ohne Höhe, Text linksbündig */
+input::-webkit-date-and-time-value { text-align: left; min-height: 1.4em; }
 input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .preview { margin: 0 0 14px; color: var(--muted); text-align: center; min-height: 1.2em; }
