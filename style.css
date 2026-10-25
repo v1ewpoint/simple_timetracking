@@ -144,6 +144,8 @@ td.num, th.num { text-align: right; }
 td.del { width: 40px; padding-right: 6px; text-align: right; }
 tbody tr { border-top: 1px solid var(--border); }
 tr.mark td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+tr.is-open td { background: var(--week-bg); }
+.open-label { color: var(--accent); font-weight: 600; }
 tr.hl td { background: var(--highlight); transition: background .3s; }
 .day-sub { display: block; color: var(--muted); font-size: .75rem; }
 

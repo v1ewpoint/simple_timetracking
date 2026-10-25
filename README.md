@@ -5,6 +5,9 @@ ausschließlich lokal im Browser des Geräts (`localStorage`) – es gibt keinen
 
 - **Erfassen:** Datum (Standard: heute), Beginn und Ende eintragen → „Zeit eintragen“.
   Ende vor Beginn wird als Schicht über Mitternacht gewertet.
+  Wird nur der Beginn eingetragen, ist der Eintrag offen; das Formular zeigt ihn an und
+  man trägt später im selben Formular das Ende nach. Es gibt immer höchstens einen offenen Eintrag.
+- **Woche:** Unter dem Formular steht die Woche des gewählten Datums mit Wochensumme.
 - **Übersicht:** Alle Einträge gruppiert nach Kalenderwoche (ISO, Mo–So) mit Wochensumme.
   Über das Datumsfeld oben springt man direkt zu einem Tag.
 

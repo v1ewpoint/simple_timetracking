@@ -46,6 +46,11 @@ function durationMin(start, end) {
   return diff;
 }
 
+// Offener Eintrag = Beginn ohne Ende (es gibt höchstens einen)
+const isOpen = (e) => !e.end;
+const entryMin = (e) => (isOpen(e) ? 0 : durationMin(e.start, e.end));
+const findOpen = () => loadEntries().find(isOpen);
+
 const hoursFmt = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatHours = (min) => `${hoursFmt.format(min / 60)} h`;
 // 60-Minuten-Takt, z. B. 8:30
@@ -101,7 +106,7 @@ function weekSectionHtml(anyDayOfWeek, list, { id = '', empty = '', markDate = '
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   const { week, year } = isoWeek(monday);
-  const total = list.reduce((s, e) => s + durationMin(e.start, e.end), 0);
+  const total = list.reduce((s, e) => s + entryMin(e), 0);
 
   const body = list.length ? `
         <table>
@@ -109,12 +114,13 @@ function weekSectionHtml(anyDayOfWeek, list, { id = '', empty = '', markDate = '
           <tbody>
             ${list.map((e) => {
               const d = parseISODate(e.date);
+              const cls = [e.date === markDate && 'mark', isOpen(e) && 'is-open'].filter(Boolean).join(' ');
               return `
-              <tr data-date="${escapeHtml(e.date)}"${e.date === markDate ? ' class="mark"' : ''}>
+              <tr data-date="${escapeHtml(e.date)}"${cls ? ` class="${cls}"` : ''}>
                 <td>${shortDateFmt.format(d)}<span class="day-sub">${weekdayFmt.format(d)}</span></td>
                 <td>${escapeHtml(e.start)}</td>
-                <td>${escapeHtml(e.end)}</td>
-                <td class="num">${bothHours(durationMin(e.start, e.end))}</td>
+                <td>${isOpen(e) ? '<span class="open-label">offen</span>' : escapeHtml(e.end)}</td>
+                <td class="num">${isOpen(e) ? '–' : bothHours(entryMin(e))}</td>
                 <td class="del"><button class="icon-btn" data-del="${escapeHtml(e.id)}" aria-label="Löschen">✕</button></td>
               </tr>`;
             }).join('')}
@@ -148,48 +154,77 @@ const fDate = $('#f-date');
 const fStart = $('#f-start');
 const fEnd = $('#f-end');
 const fPreview = $('#f-preview');
+const fSubmit = $('#f-submit');
 
-function resetForm() {
-  fDate.value = toISODate(new Date());
-  fStart.value = '';
+// Id des offenen Eintrags, den das Formular gerade zeigt (null = keiner)
+let formOpenId;
+
+// Formular an den offenen Eintrag anpassen. Felder werden nur zurückgesetzt,
+// wenn sich der Zustand ändert, damit laufende Eingaben erhalten bleiben.
+function syncForm(force = false) {
+  const open = findOpen();
+  const openId = open ? open.id : null;
+  if (!force && openId === formOpenId) return;
+  formOpenId = openId;
+  if (open) {
+    fDate.value = open.date;
+    fStart.value = open.start;
+  } else {
+    if (!fDate.value) fDate.value = toISODate(new Date());
+    fStart.value = '';
+  }
   fEnd.value = '';
+  fEnd.required = !!open;
   updatePreview();
 }
 
 function updatePreview() {
+  const open = formOpenId !== null;
   if (fStart.value && fEnd.value) {
     const min = durationMin(fStart.value, fEnd.value);
     const overnight = toMinutes(fEnd.value) < toMinutes(fStart.value);
     fPreview.textContent = `Dauer: ${formatHM(min)} Std. (${formatHours(min)})${overnight ? ' (über Mitternacht)' : ''}`;
+  } else if (open) {
+    const d = parseISODate(fDate.value || toISODate(new Date()));
+    fPreview.textContent = `Offen seit ${fStart.value || '–'} (${weekdayFmt.format(d)} ${shortDateFmt.format(d)}) – bitte Ende eintragen`;
   } else {
     fPreview.innerHTML = '&nbsp;';
   }
+  fSubmit.textContent = open ? 'Ende eintragen' : (fEnd.value ? 'Zeit eintragen' : 'Beginn eintragen');
 }
 
-[fStart, fEnd].forEach((el) => el.addEventListener('input', updatePreview));
+[fDate, fStart, fEnd].forEach((el) => el.addEventListener('input', updatePreview));
 
 $('#entry-form').addEventListener('submit', (e) => {
   e.preventDefault();
-  if (!fDate.value || !fStart.value || !fEnd.value) {
-    toast('Bitte Datum, Beginn und Ende ausfüllen');
+  const entries = loadEntries();
+  const open = entries.find(isOpen);
+  if (!fDate.value || !fStart.value || (open && !fEnd.value)) {
+    toast(open ? 'Bitte Ende ausfüllen' : 'Bitte Datum und Beginn ausfüllen');
     return;
   }
   if (fStart.value === fEnd.value) {
     toast('Beginn und Ende sind gleich');
     return;
   }
-  const entries = loadEntries();
-  entries.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-    date: fDate.value,
-    start: fStart.value,
-    end: fEnd.value,
-  });
+
+  if (open) {
+    // Offenen Eintrag abschließen (Datum/Beginn ggf. korrigiert)
+    Object.assign(open, { date: fDate.value, start: fStart.value, end: fEnd.value });
+    toast(`Eingetragen: ${formatHM(entryMin(open))} Std.`);
+  } else {
+    entries.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      date: fDate.value,
+      start: fStart.value,
+      end: fEnd.value,
+    });
+    toast(fEnd.value
+      ? `Eingetragen: ${formatHM(durationMin(fStart.value, fEnd.value))} Std.`
+      : `Beginn ${fStart.value} eingetragen – Ende später nachtragen`);
+  }
   saveEntries(entries);
-  toast(`Eingetragen: ${formatHM(durationMin(fStart.value, fEnd.value))} Std.`);
-  const keepDate = fDate.value;
-  resetForm();
-  fDate.value = keepDate;
+  syncForm(true);
   renderToday();
 });
 
@@ -265,6 +300,7 @@ $('#search-btn').addEventListener('click', () => jumpToDate($('#search-date').va
 $('#search-date').addEventListener('change', (e) => jumpToDate(e.target.value));
 
 function rerender() {
+  syncForm();
   renderToday();
   renderWeeks();
 }
@@ -375,7 +411,7 @@ function markExported() {
 const isValidEntry = (e) => e
   && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
   && /^\d{2}:\d{2}$/.test(e.start)
-  && /^\d{2}:\d{2}$/.test(e.end);
+  && (e.end === '' || /^\d{2}:\d{2}$/.test(e.end));
 
 async function importBackup(file) {
   let data;
@@ -395,8 +431,16 @@ async function importBackup(file) {
   const current = loadEntries();
   const sig = (e) => `${e.date}|${e.start}|${e.end}`;
   const known = new Set(current.map(sig));
+  // Höchstens ein offener Eintrag: weitere offene aus der Datei überspringen
+  let hasOpen = current.some(isOpen);
   const added = valid
     .filter((e) => !known.has(sig(e)))
+    .filter((e) => {
+      if (!isOpen(e)) return true;
+      if (hasOpen) return false;
+      hasOpen = true;
+      return true;
+    })
     .map((e, i) => ({ id: `imp${Date.now().toString(36)}${i}`, date: e.date, start: e.start, end: e.end }));
 
   if (!added.length) {
@@ -507,7 +551,7 @@ function route() {
 window.addEventListener('hashchange', route);
 
 // ---------- Start ----------
-resetForm();
+syncForm(true);
 route();
 autoBackup();
 
